@@ -1,4 +1,4 @@
-# BLACK BOX — Smart Shopping Comparison Chrome Extension
+# BUY BOX — Smart Shopping Comparison Chrome Extension
 
 > **Compare Smart. Shop Better.**
 
@@ -10,7 +10,7 @@ A Chrome Extension powered by Information Retrieval that compares products acros
 
 Online shoppers face the challenge of comparing the same product across multiple e-commerce platforms (Amazon, Flipkart, Myntra, etc.) to find the best deal. Manually checking each platform is time-consuming and inefficient.
 
-**Black Box** solves this problem by automatically detecting cart additions on shopping sites and retrieving comparable products using Information Retrieval techniques, providing an intelligent recommendation for the best purchase option — directly in the Chrome Side Panel.
+**BUY BOX** solves this problem by automatically detecting cart additions on shopping sites and retrieving comparable products, providing an intelligent recommendation for the best purchase option in a compact floating popup.
 
 ---
 
@@ -19,7 +19,7 @@ Online shoppers face the challenge of comparing the same product across multiple
 1. Implement a text-based Information Retrieval system using TF-IDF and Cosine Similarity
 2. Build a product comparison engine that evaluates products on multiple attributes
 3. Demonstrate the complete IR pipeline: Query Processing → Vectorization → Similarity → Retrieval → Ranking
-4. Create a modern Chrome Extension with a premium side panel interface
+4. Create a modern Chrome Extension with a compact floating comparison popup
 
 ---
 
@@ -99,9 +99,9 @@ After retrieval, products are sorted and badged:
 │                                                       │
 │  Background Service Worker                            │
 │    ↓ stores title in chrome.storage                   │
-│    ↓ opens Side Panel                                 │
+│    ↓ opens BUY BOX popup                              │
 │                                                       │
-│  Side Panel (React + Vite)                            │
+│  BUY BOX Popup (React + Vite)                         │
 │    ↓ reads detected title                             │
 │    ↓ user clicks "Compare Now"                        │
 │    ↓ IR Pipeline:                                     │
@@ -132,7 +132,7 @@ After retrieval, products are sorted and badged:
 ## Project Structure
 
 ```
-black-box/
+buy-box/
 ├── src/
 │   ├── ir/                        # Information Retrieval engine
 │   │   ├── stopwords.js           #   English stop words set
@@ -164,7 +164,7 @@ black-box/
 │   ├── manifest.json              # Chrome Manifest V3
 │   ├── favicon.svg
 │   └── icons.svg
-├── sidepanel.html                 # Side panel HTML entry
+├── sidepanel.html                 # BUY BOX popup HTML entry
 ├── package.json
 ├── vite.config.js
 ├── .gitignore
@@ -216,11 +216,11 @@ When no proxy is configured, the extension uses the offline dataset (86 products
 
 1. **Browse** any supported shopping site (Amazon, Flipkart, eBay, etc.)
 2. **Add to Cart** — the extension automatically detects the cart event
-3. **Side Panel opens** with the detected product title
+3. **BUY BOX opens** near the top-right with the detected product title
 4. **Compare Now** — triggers the IR pipeline
 5. **View** ranked results with relevance scores, prices, and ratings
 6. **Sort** by Best Match, Lowest Price, Highest Rating, Most Reviews, or Most Purchased
-7. **Inspect** the "How Results Were Retrieved" panel to see the IR pipeline
+7. **Open** a direct buying link for the preferred offer
 
 ---
 

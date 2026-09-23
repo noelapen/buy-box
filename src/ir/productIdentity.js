@@ -5,7 +5,15 @@ const CATEGORY_ALIASES = {
   clothing: ['robe', 'bathrobe', 'bath', 'shirt', 'tshirt', 'dress', 'jacket', 'jeans', 'clothing', 'apparel'],
   beauty: ['shampoo', 'conditioner', 'cream', 'lipstick', 'foundation', 'beauty', 'skincare'],
   electronics: ['phone', 'mobile', 'laptop', 'watch', 'headphone', 'earbud', 'electronics'],
-  grocery: ['tea', 'coffee', 'rice', 'grocery', 'food'],
+  grocery: ['tea', 'coffee', 'rice', 'noodle', 'noodles', 'grocery', 'food'],
+};
+
+const PRODUCT_TYPE_ALIASES = {
+  footwear: CATEGORY_ALIASES.footwear,
+  phone: ['phone', 'mobile', 'smartphone'],
+  audio: ['headphone', 'headphones', 'earbud', 'earbuds', 'earphone', 'earphones'],
+  foundation: ['foundation'],
+  noodles: ['noodle', 'noodles'],
 };
 
 function normalize(value) {
@@ -33,6 +41,8 @@ export function extractProductIdentity(query, candidates = []) {
 
   const category = Object.entries(CATEGORY_ALIASES)
     .find(([, aliases]) => hasAny(queryTokens, aliases))?.[0] || '';
+  const productType = Object.entries(PRODUCT_TYPE_ALIASES)
+    .find(([, aliases]) => hasAny(queryTokens, aliases))?.[0] || '';
 
   const productTokens = new Set(queryTokens);
   for (const token of tokens(brand)) productTokens.delete(token);
@@ -40,6 +50,7 @@ export function extractProductIdentity(query, candidates = []) {
   return {
     brand,
     category,
+    productType,
     productTokens,
     queryTokens,
   };
@@ -57,9 +68,12 @@ export function isSameBrand(product, identity) {
 }
 
 export function isSameCategory(product, identity) {
-  if (!identity.category) return true;
+  if (!identity.category && !identity.productType) return true;
 
   const productTokens = tokens(`${product.product_name} ${product.category} ${product.description}`);
+  if (identity.productType) {
+    return hasAny(productTokens, PRODUCT_TYPE_ALIASES[identity.productType] || []);
+  }
   const aliases = CATEGORY_ALIASES[identity.category] || [];
   return hasAny(productTokens, aliases);
 }

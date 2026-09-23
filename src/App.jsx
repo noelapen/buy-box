@@ -6,17 +6,14 @@ import Header from './components/Header.jsx';
 import DetectedItem from './components/DetectedItem.jsx';
 import SearchBar from './components/SearchBar.jsx';
 import ResultsTable from './components/ResultsTable.jsx';
-import PipelineExplainer from './components/PipelineExplainer.jsx';
 
 /**
  * App — Main side panel application.
  *
  * Orchestrates the full user flow:
  *   1. On mount, reads detected cart item from chrome.storage.local
- *   2. User types a query or uses the detected title
- *   3. "Compare Now" triggers the IR pipeline (TF-IDF + Cosine Similarity)
- *   4. Results are displayed in a sortable table with ranking badges
- *   5. Pipeline explainer shows how retrieval works
+ *   2. The detected title is searched automatically
+ *   3. Results are displayed as a compact cross-platform comparison
  */
 export default function App() {
   const [query, setQuery] = useState('');
@@ -26,29 +23,39 @@ export default function App() {
   const [sortBy, setSortBy] = useState(SORT_OPTIONS.BEST_MATCH);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [minimized, setMinimized] = useState(false);
 
   // On mount, check chrome.storage for a detected cart item
   useEffect(() => {
-    function applyDetectedItem(blackBoxCartItem) {
-      if (blackBoxCartItem) {
-        setDetectedTitle(blackBoxCartItem);
-        setQuery(blackBoxCartItem);
-        compare(blackBoxCartItem);
+    function applyDetectedItem(buyBoxCartItem) {
+      if (buyBoxCartItem) {
+        setDetectedTitle(buyBoxCartItem);
+        setQuery(buyBoxCartItem);
+        setMinimized(false);
+        compare(buyBoxCartItem);
       }
     }
 
-    chrome.storage?.local.get('blackBoxCartItem').then(({ blackBoxCartItem }) => {
-      applyDetectedItem(blackBoxCartItem);
+    chrome.storage?.local.get('buyBoxCartItem').then(({ buyBoxCartItem }) => {
+      applyDetectedItem(buyBoxCartItem);
     });
 
     const handleStorageChange = (changes, areaName) => {
-      if (areaName === 'local' && changes.blackBoxCartItem?.newValue) {
-        applyDetectedItem(changes.blackBoxCartItem.newValue);
+      if (areaName === 'local' && changes.buyBoxCartItem?.newValue) {
+        applyDetectedItem(changes.buyBoxCartItem.newValue);
       }
     };
 
+    const handlePopupQuery = event => {
+      if (event.data?.type === 'BUY_BOX_QUERY') applyDetectedItem(event.data.query);
+    };
+
     chrome.storage?.onChanged?.addListener(handleStorageChange);
-    return () => chrome.storage?.onChanged?.removeListener(handleStorageChange);
+    window.addEventListener('message', handlePopupQuery);
+    return () => {
+      chrome.storage?.onChanged?.removeListener(handleStorageChange);
+      window.removeEventListener('message', handlePopupQuery);
+    };
   }, []);
 
   /**
@@ -91,11 +98,22 @@ export default function App() {
     }
   }
 
+  function postPopupAction(type) {
+    window.parent?.postMessage({ type }, '*');
+  }
+
   return (
     <main className="app-shell">
-      <Header />
+      <Header
+        onMinimize={() => {
+          setMinimized(value => !value);
+          postPopupAction('BUY_BOX_MINIMIZE');
+        }}
+        onClose={() => postPopupAction('BUY_BOX_CLOSE')}
+      />
 
-      <DetectedItem title={detectedTitle} onUse={useDetectedTitle} />
+      {!minimized && <>
+        <DetectedItem title={detectedTitle} onUse={useDetectedTitle} />
 
       <SearchBar
         query={query}
@@ -109,7 +127,6 @@ export default function App() {
       {retrieval && (
         <ResultsTable
           results={results}
-          source={retrieval.source}
           noMatchMessage={retrieval.noMatchMessage}
           missingPlatforms={retrieval.missingPlatforms}
           sortBy={sortBy}
@@ -117,10 +134,7 @@ export default function App() {
         />
       )}
 
-      <PipelineExplainer
-        pipeline={retrieval?.pipeline}
-        hasResults={!!retrieval}
-      />
+      </>}
     </main>
   );
 }

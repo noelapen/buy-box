@@ -30,7 +30,7 @@ function badgeClass(badge) {
  * @param {string} props.sortBy - Current sort option key
  * @param {Function} props.onSortChange - Called with new sort option value
  */
-export default function ResultsTable({ results, source, noMatchMessage, missingPlatforms = [], sortBy, onSortChange }) {
+export default function ResultsTable({ results, noMatchMessage, missingPlatforms = [], sortBy, onSortChange }) {
   if (!results || results.length === 0) {
     return (
       <div className="empty-state">
@@ -45,8 +45,8 @@ export default function ResultsTable({ results, source, noMatchMessage, missingP
       {/* Section header with source label + sort dropdown */}
       <div className="section-heading">
         <div>
-          <span className="source-label">{source}</span>
-          <h2>Comparison Results</h2>
+          <span className="source-label">BUY BOX comparison</span>
+          <h2>Same product across platforms</h2>
         </div>
         <select
           className="sort-select"
@@ -68,61 +68,28 @@ export default function ResultsTable({ results, source, noMatchMessage, missingP
         </p>
       )}
 
-      {/* Scrollable results table */}
-      <div className="table-wrap">
-        <table className="results-table">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Product</th>
-              <th>Platform</th>
-              <th>Price</th>
-              <th>Rating</th>
-              <th>Reviews</th>
-              <th>Purchased</th>
-              <th>Relevance</th>
-              <th>Link</th>
-            </tr>
-          </thead>
-          <tbody>
-            {results.map((product, index) => (
-              <tr key={`${product.platform}-${product.product_name}-${index}`}>
-                <td className="cell-rank">{index + 1}</td>
-                <td className="cell-product">
-                  <strong>{product.product_name}</strong>
-                  {product.badges && product.badges.length > 0 && (
-                    <div className="cell-badges">
-                      {product.badges.map((badge) => (
-                        <span key={badge} className={badgeClass(badge)}>
-                          {badge}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </td>
-                <td>{product.platform}</td>
-                <td>{formatValue(product.price, '₹')}</td>
-                <td>{formatValue(product.rating)}</td>
-                <td>{formatValue(product.review_count)}</td>
-                <td>{formatValue(product.purchase_count)}</td>
-                <td className="cell-score">
-                  {typeof product.relevance_score === 'number'
-                    ? product.relevance_score.toFixed(4)
-                    : 'N/A'}
-                </td>
-                <td className="cell-link">
-                  {product.product_url && product.product_url !== 'N/A' ? (
-                    <a href={product.product_url} target="_blank" rel="noreferrer">
-                      Open
-                    </a>
-                  ) : (
-                    <span className="cell-na">N/A</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="comparison-group">
+        <div className="platform-list">
+          {results.map((product, index) => (
+            <article className="product-card" key={`${product.platform}-${product.product_name}-${index}`}>
+              {product.image !== 'N/A' && <img className="product-image" src={product.image} alt="" />}
+              <div className="product-card__body">
+                <div className="product-card__topline">
+                  <span className="platform-name">{product.platform}</span>
+                  {product.badges?.map(badge => <span key={badge} className={badgeClass(badge)}>{badge}</span>)}
+                </div>
+                <h3>{product.product_name}</h3>
+                <div className="product-facts">
+                  <strong>{formatValue(product.price, '₹')}</strong>
+                  <span>Rating {formatValue(product.rating)}</span>
+                  <span>{formatValue(product.review_count)} reviews</span>
+                  <span>{formatValue(product.availability)}</span>
+                </div>
+                {product.product_url && product.product_url !== 'N/A' ? <a className="buy-link" href={product.product_url} target="_blank" rel="noreferrer">View deal</a> : <span className="cell-na">Link unavailable</span>}
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
