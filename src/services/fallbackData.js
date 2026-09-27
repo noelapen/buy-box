@@ -10,7 +10,7 @@
  *   (c) Supplementing API results with additional platforms
  */
 
-import productsData from '../data/products.json';
+import productsData from '../data/products.json' with { type: 'json' };
 import { normalizeOfflineProduct } from './normalizeProduct.js';
 
 /**

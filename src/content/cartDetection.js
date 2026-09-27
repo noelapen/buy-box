@@ -77,6 +77,11 @@ export function getProductTitle(doc = document) {
     '#productTitle',
     'h1',
     'meta[property="og:title"]',
+    '[data-product-name]',
+    '[data-name]',
+    '.pdp-title',
+    '.ProductCard-title',
+    '.product-name',
   ];
 
   for (const selector of selectors) {

@@ -661,6 +661,40 @@ body {
 }
 
 /* ----------------------------------------------------------------
+   Source Indicator
+   ---------------------------------------------------------------- */
+.source-indicator {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(12, 23, 18, 0.5);
+  border: 1px solid var(--border-subtle);
+  animation: fadeIn var(--transition-normal) ease-out;
+}
+
+.source-indicator__label {
+  color: var(--text-muted);
+  font: 500 9px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.source-indicator__badge {
+  display: inline-block;
+  padding: 3px 8px;
+  font: 500 9px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  border-radius: 4px;
+  background: rgba(142, 247, 181, 0.1);
+  color: var(--accent-primary);
+  border: 1px solid rgba(142, 247, 181, 0.2);
+}
+
+/* ----------------------------------------------------------------
    Empty State
    ---------------------------------------------------------------- */
 .empty-state {

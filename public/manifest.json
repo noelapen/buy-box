@@ -5,15 +5,17 @@
   "description": "Compare the same product across shopping platforms.",
   "permissions": ["storage"],
   "host_permissions": [
-    "https://*.amazon.com/*",
     "https://*.amazon.in/*",
     "https://*.flipkart.com/*",
-    "https://*.ebay.com/*",
-    "https://*.ebay.in/*",
-    "https://*.walmart.com/*",
-    "https://*.target.com/*",
     "https://*.myntra.com/*",
-    "https://*.ajio.com/*"
+    "https://*.meesho.com/*",
+    "https://*.ajio.com/*",
+    "https://*.nykaa.com/*",
+    "https://*.blinkit.com/*",
+    "https://*.bigbasket.com/*",
+    "https://*.tatacliq.com/*",
+    "https://*.snapdeal.com/*",
+    "https://*.shopclues.com/*"
   ],
   "background": {
     "service_worker": "assets/background.js",
@@ -25,15 +27,17 @@
   "content_scripts": [
     {
       "matches": [
-        "https://*.amazon.com/*",
         "https://*.amazon.in/*",
         "https://*.flipkart.com/*",
-        "https://*.ebay.com/*",
-        "https://*.ebay.in/*",
-        "https://*.walmart.com/*",
-        "https://*.target.com/*",
         "https://*.myntra.com/*",
-        "https://*.ajio.com/*"
+        "https://*.meesho.com/*",
+        "https://*.ajio.com/*",
+        "https://*.nykaa.com/*",
+        "https://*.blinkit.com/*",
+        "https://*.bigbasket.com/*",
+        "https://*.tatacliq.com/*",
+        "https://*.snapdeal.com/*",
+        "https://*.shopclues.com/*"
       ],
       "js": ["assets/content.js"],
       "run_at": "document_idle"
@@ -43,15 +47,17 @@
     {
       "resources": ["sidepanel.html", "assets/*"],
       "matches": [
-        "https://*.amazon.com/*",
         "https://*.amazon.in/*",
         "https://*.flipkart.com/*",
-        "https://*.ebay.com/*",
-        "https://*.ebay.in/*",
-        "https://*.walmart.com/*",
-        "https://*.target.com/*",
         "https://*.myntra.com/*",
-        "https://*.ajio.com/*"
+        "https://*.meesho.com/*",
+        "https://*.ajio.com/*",
+        "https://*.nykaa.com/*",
+        "https://*.blinkit.com/*",
+        "https://*.bigbasket.com/*",
+        "https://*.tatacliq.com/*",
+        "https://*.snapdeal.com/*",
+        "https://*.shopclues.com/*"
       ]
     }
   ]

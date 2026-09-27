@@ -6,6 +6,7 @@ import {
   isSameBrand,
   isSameCategory,
 } from './productIdentity.js';
+import { resolveProductCandidates } from './retrieval.js';
 
 test('extracts Spaces and bathrobe category from a cart title', () => {
   const identity = extractProductIdentity('Spaces Cotton Bath Robe for Men', []);
@@ -38,4 +39,14 @@ test('accepts same-brand bathrobe candidates with title overlap', () => {
   assert.equal(isSameBrand(candidate, identity), true);
   assert.equal(isSameCategory(candidate, identity), true);
   assert.equal(hasProductTitleOverlap(candidate, identity), true);
+});
+
+test('prefers live product results over the offline dataset when live data exists', () => {
+  const live = [{ platform: 'Amazon.in', product_name: 'Roadster T-shirt', brand: 'Roadster' }];
+  const fallback = [{ platform: 'Flipkart', product_name: 'Roadster T-shirt', brand: 'Roadster' }];
+
+  const result = resolveProductCandidates(live, fallback);
+
+  assert.equal(result.length, 1);
+  assert.deepEqual(result[0], live[0]);
 });

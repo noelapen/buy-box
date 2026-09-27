@@ -6,15 +6,9 @@ import Header from './components/Header.jsx';
 import DetectedItem from './components/DetectedItem.jsx';
 import SearchBar from './components/SearchBar.jsx';
 import ResultsTable from './components/ResultsTable.jsx';
+import SourceIndicator from './components/SourceIndicator.jsx';
 
-/**
- * App — Main side panel application.
- *
- * Orchestrates the full user flow:
- *   1. On mount, reads detected cart item from chrome.storage.local
- *   2. The detected title is searched automatically
- *   3. Results are displayed as a compact cross-platform comparison
- */
+/* Main app — orchestrates detection → search → comparison */
 export default function App() {
   const [query, setQuery] = useState('');
   const [detectedTitle, setDetectedTitle] = useState('');
@@ -58,11 +52,7 @@ export default function App() {
     };
   }, []);
 
-  /**
-   * Run the IR comparison pipeline.
-   * Calls retrieveProducts() which handles:
-   *   preprocessing → candidate fetch → TF-IDF → cosine similarity → ranking
-   */
+  /* Run the IR comparison pipeline */
   async function compare(nextQuery = query) {
     const cleanQuery = String(nextQuery ?? query ?? '').trim();
     if (!cleanQuery) return;
@@ -80,22 +70,13 @@ export default function App() {
     }
   }
 
-  /**
-   * Re-sort the current results by a different attribute.
-   */
   function handleSortChange(nextSort) {
     setSortBy(nextSort);
     setResults(sortProducts(results, nextSort));
   }
 
-  /**
-   * Use the detected cart title as the search query.
-   */
   function useDetectedTitle() {
-    if (detectedTitle) {
-      setQuery(detectedTitle);
-      compare(detectedTitle);
-    }
+    if (detectedTitle) { setQuery(detectedTitle); compare(detectedTitle); }
   }
 
   function postPopupAction(type) {
@@ -105,35 +86,32 @@ export default function App() {
   return (
     <main className="app-shell">
       <Header
-        onMinimize={() => {
-          setMinimized(value => !value);
-          postPopupAction('BUY_BOX_MINIMIZE');
-        }}
+        onMinimize={() => { setMinimized(v => !v); postPopupAction('BUY_BOX_MINIMIZE'); }}
         onClose={() => postPopupAction('BUY_BOX_CLOSE')}
       />
 
       {!minimized && <>
         <DetectedItem title={detectedTitle} onUse={useDetectedTitle} />
 
-      <SearchBar
-        query={query}
-        onQueryChange={setQuery}
-        onSubmit={compare}
-        loading={loading}
-      />
-
-      {error && <p className="error-message">{error}</p>}
-
-      {retrieval && (
-        <ResultsTable
-          results={results}
-          noMatchMessage={retrieval.noMatchMessage}
-          missingPlatforms={retrieval.missingPlatforms}
-          sortBy={sortBy}
-          onSortChange={handleSortChange}
+        <SearchBar
+          query={query}
+          onQueryChange={setQuery}
+          onSubmit={compare}
+          loading={loading}
         />
-      )}
 
+        {error && <p className="error-message">{error}</p>}
+
+        {retrieval && <>
+          <SourceIndicator sources={retrieval.sources} />
+          <ResultsTable
+            results={results}
+            noMatchMessage={retrieval.noMatchMessage}
+            missingPlatforms={retrieval.missingPlatforms}
+            sortBy={sortBy}
+            onSortChange={handleSortChange}
+          />
+        </>}
       </>}
     </main>
   );

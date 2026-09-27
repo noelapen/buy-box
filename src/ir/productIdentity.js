@@ -4,7 +4,8 @@ const CATEGORY_ALIASES = {
   footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear', 'boot', 'boots'],
   clothing: ['robe', 'bathrobe', 'bath', 'shirt', 'tshirt', 'dress', 'jacket', 'jeans', 'clothing', 'apparel'],
   beauty: ['shampoo', 'conditioner', 'cream', 'lipstick', 'foundation', 'beauty', 'skincare'],
-  electronics: ['phone', 'mobile', 'laptop', 'watch', 'headphone', 'earbud', 'electronics'],
+  electronics: ['phone', 'mobile', 'laptop', 'headphone', 'earbud', 'electronics'],
+  watches: ['watch', 'watches', 'timepiece', 'dial', 'analog', 'digital', 'chronograph', 'wristwatch'],
   grocery: ['tea', 'coffee', 'rice', 'noodle', 'noodles', 'grocery', 'food'],
 };
 
@@ -12,6 +13,7 @@ const PRODUCT_TYPE_ALIASES = {
   footwear: CATEGORY_ALIASES.footwear,
   phone: ['phone', 'mobile', 'smartphone'],
   audio: ['headphone', 'headphones', 'earbud', 'earbuds', 'earphone', 'earphones'],
+  watches: ['watch', 'watches', 'analog', 'digital', 'dial', 'chronograph', 'wristwatch'],
   foundation: ['foundation'],
   noodles: ['noodle', 'noodles'],
 };
