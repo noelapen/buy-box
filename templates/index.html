@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BuyBox - Compare product offers from live shopping sources and a local catalog">
+    <title>BuyBox — Cross-Platform Price Comparator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="container">
+        <div class="logo">
+            <span class="logo-icon">📦</span>
+            <h1>BuyBox</h1>
+            <span class="tagline">Cross-Platform Price Comparator</span>
+        </div>
+    </div>
+</header>
+
+<!-- Search Section -->
+<section class="search-section">
+    <div class="container">
+        <form class="search-form" action="/" method="get" id="search-form">
+            <div class="search-bar">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" name="q" id="search-input"
+                       value="{{ query }}"
+                       placeholder="e.g. Nike Revolution 6 Running Shoes"
+                       autocomplete="off">
+                <button type="submit" class="search-btn">Compare</button>
+            </div>
+
+            {% if comparison and comparison.results %}
+            <div class="sort-bar">
+                <label>Sort by:</label>
+                {% for key, label in sort_options.items() %}
+                <a href="/?q={{ query }}&sort={{ key }}"
+                   class="sort-chip {% if sort_by == key %}active{% endif %}">
+                    {{ label }}
+                </a>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</section>
+
+<!-- Results Section -->
+<main class="results-section">
+    <div class="container">
+
+        {% if comparison and comparison.message %}
+        <div class="no-results">
+            <p>{{ comparison.message }}</p>
+        </div>
+        {% endif %}
+
+        {% if comparison and comparison.results %}
+        <div class="results-header">
+            <h2>Comparing across {{ comparison.platform_count }} platform{{ 's' if comparison.platform_count != 1 }}</h2>
+            <p class="source-note">{{ comparison.source_label }}</p>
+            {% if comparison.missing_platforms %}
+            <p class="missing-note">Not found on: {{ comparison.missing_platforms|join(', ') }}</p>
+            {% endif %}
+        </div>
+
+        <div class="results-grid">
+            {% for product in comparison.results %}
+            <div class="product-card {% if 'BEST CHOICE' in product.badges %}best-choice{% endif %}">
+
+                <!-- Badges -->
+                {% if product.badges %}
+                <div class="badges">
+                    {% for badge in product.badges %}
+                    <span class="badge
+                        {% if badge == 'BEST CHOICE' %}badge-best{% endif %}
+                        {% if badge == 'LOWEST PRICE' %}badge-price{% endif %}
+                        {% if badge == 'HIGHEST RATED' %}badge-rated{% endif %}
+                        {% if badge == 'BEST MATCH' %}badge-match{% endif %}
+                    ">{{ badge }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Product Image -->
+                <div class="product-img">
+                    {% if product.image and product.image != 'N/A' %}
+                    <img src="{{ product.image }}" alt="{{ product.product_name }}" loading="lazy">
+                    {% else %}
+                    <div class="img-placeholder">No Image</div>
+                    {% endif %}
+                </div>
+
+                <!-- Platform Tag -->
+                <div class="platform-tag">{{ product.platform }}</div>
+
+                <!-- Product Info -->
+                <div class="product-info">
+                    <h3 class="product-title">{{ product.product_name }}</h3>
+                    <p class="product-brand">{{ product.brand }}</p>
+
+                    <div class="product-stats">
+                        <!-- Price -->
+                        <div class="stat">
+                            <span class="stat-label">Price</span>
+                            <span class="stat-value price-value">
+                                {% if product.price is not none %}₹{{ "%.0f"|format(product.price) }}{% else %}N/A{% endif %}
+                            </span>
+                        </div>
+                        <!-- Rating -->
+                        <div class="stat">
+                            <span class="stat-label">Rating</span>
+                            <span class="stat-value">
+                                {% if product.rating is not none %}⭐ {{ "%.1f"|format(product.rating) }}{% else %}N/A{% endif %}
+                            </span>
+                        </div>
+                        <!-- Reviews -->
+                        <div class="stat">
+                            <span class="stat-label">Reviews</span>
+                            <span class="stat-value">
+                                {% if product.review_count is not none %}{{ "%.0f"|format(product.review_count) }}{% else %}N/A{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action -->
+                {% set url = product_search_url(product) %}
+                {% if url %}
+                <a href="{{ url }}" target="_blank" rel="noopener" class="view-btn">View on {{ product.platform }}</a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if not comparison %}
+        <div class="welcome">
+            <div class="welcome-icon">🔍</div>
+            <h2>Search for a product to compare prices</h2>
+            <p>Search a product category or a specific brand and model</p>
+            <div class="example-queries">
+                <span>Try:</span>
+                <a href="/?q=shoes">shoes</a>
+                <a href="/?q=kurti">kurti</a>
+                <a href="/?q=cup">cup</a>
+                <a href="/?q=Nike+Revolution+6">Nike Revolution 6</a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <p>BuyBox - Product price comparison</p>
+    </div>
+</footer>
+
+</body>
+</html>

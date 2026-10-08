@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="bg-surf_excel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#000050"/>
+      <stop offset="50%" stop-color="#000050"/>
+      <stop offset="100%" stop-color="#87ceeb" stop-opacity="0.25"/>
+    </linearGradient>
+    <linearGradient id="shine-surf_excel" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#87ceeb" stop-opacity="0.08"/>
+      <stop offset="50%" stop-color="#87ceeb" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="#87ceeb" stop-opacity="0.12"/>
+    </linearGradient>
+    <filter id="glow-surf_excel">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bg-surf_excel)"/>
+  <rect width="400" height="400" fill="url(#shine-surf_excel)"/>
+
+  <!-- Decorative circles -->
+  <circle cx="320" cy="80" r="120" fill="#87ceeb" opacity="0.04"/>
+  <circle cx="80" cy="320" r="80" fill="#87ceeb" opacity="0.06"/>
+
+  <!-- Emoji icon -->
+  <text x="200" y="140" text-anchor="middle" font-size="64" opacity="0.9">🧴</text>
+
+  <!-- Brand accent line -->
+  <rect x="160" y="180" width="80" height="3" rx="1.5" fill="#87ceeb" opacity="0.7"/>
+
+  <!-- Brand name -->
+  <text x="200" y="225" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="30" font-weight="800" fill="#ffffff" letter-spacing="1">Surf Excel</text>
+
+  <!-- Model name -->
+  <text x="200" y="260" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="18" font-weight="500" fill="#ffffffbb">Matic</text>
+
+  <!-- Description -->
+  <text x="200" y="290" text-anchor="middle" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="400" fill="#ffffffbb" opacity="0.7">Liquid 2L</text>
+
+  <!-- Bottom accent bar -->
+  <rect x="0" y="380" width="400" height="20" fill="#87ceeb" opacity="0.15"/>
+  <rect x="170" y="330" width="12" height="12" rx="3" fill="#87ceeb" opacity="0.3"/>
+  <rect x="190" y="330" width="20" height="12" rx="3" fill="#87ceeb" opacity="0.5"/>
+  <rect x="218" y="330" width="12" height="12" rx="3" fill="#87ceeb" opacity="0.3"/>
+</svg>

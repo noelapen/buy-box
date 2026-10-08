@@ -1,16 +1,14 @@
-# BUY BOX — Smart Shopping Comparison Chrome Extension
+# BUY BOX - Product Price Comparator
 
-> **Compare Smart. Shop Better.**
-
-A Chrome Extension powered by Information Retrieval that compares products across multiple Indian e-commerce platforms using **TF-IDF + Cosine Similarity**, with real-time data fetching from Google Shopping, Amazon, and Flipkart — ranked with a weighted scoring system.
+BuyBox is a small Flask application with an HTML/CSS frontend. It searches ShopIt's Amazon India and Flipkart API first, then automatically uses the included product catalog when ShopIt is unavailable or has no usable results. Query Reformulation and TF-IDF/Cosine Similarity run in Python; their demonstration trace is printed in the server terminal, not shown in the page.
 
 ---
 
 ## Problem Statement
 
-Online shoppers face the challenge of comparing the same product across multiple e-commerce platforms (Amazon, Flipkart, Myntra, etc.) to find the best deal. Manually checking each platform is time-consuming and inefficient.
+Online shoppers face the challenge of comparing product offers across e-commerce platforms. Manually checking each platform is time-consuming and inefficient.
 
-**BUY BOX** solves this problem by automatically detecting cart additions on shopping sites and retrieving comparable products, providing an intelligent recommendation for the best purchase option in a compact floating popup.
+**BUY BOX** retrieves relevant products for both broad category searches and specific brand/model searches, then compares prices, ratings, and review counts.
 
 ---
 
@@ -19,8 +17,8 @@ Online shoppers face the challenge of comparing the same product across multiple
 1. Implement a text-based Information Retrieval system using TF-IDF and Cosine Similarity
 2. Build a product comparison engine that evaluates products on multiple attributes
 3. Demonstrate the complete IR pipeline: Query Processing → Vectorization → Similarity → Retrieval → Ranking
-4. Integrate real-time data from Indian e-commerce platforms via APIs
-5. Create a modern Chrome Extension with a compact floating comparison popup
+4. Retrieve live product listings through the ShopIt API
+5. Fall back automatically to a local dataset when live results are unavailable
 
 ---
 
@@ -66,28 +64,7 @@ Cosine Similarity(Q, D) = (Q · D) / (||Q|| × ||D||)
 
 ## Architecture
 
-```
-┌──────────────────────────────────────────────────────┐
-│             Chrome Extension (Manifest V3)            │
-│                                                       │
-│  Content Script (shopping sites)                      │
-│    ↓ detects "Add to Cart" click                      │
-│    ↓ reads product title → opens BUY BOX popup        │
-│                                                       │
-│  BUY BOX Popup (React + Vite)                         │
-│    ↓ reads detected title                             │
-│    ↓ user clicks "Compare Now"                        │
-│    ↓ Real-Time Data Fetching:                         │
-│      ├─ Google Shopping (SerpAPI)                     │
-│      ├─ Amazon India (PA-API 5.0)                     │
-│      ├─ Flipkart (Affiliate API)                      │
-│      └─ Offline dataset (86 products, fallback)       │
-│    ↓ IR Pipeline:                                     │
-│      Preprocessing → TF-IDF → Cosine Similarity       │
-│    ↓ Top-K results with ranking badges                │
-│    ↓ Sortable comparison cards                        │
-└──────────────────────────────────────────────────────┘
-```
+The Flask route sends the raw query to ShopIt's unified `/api/search` endpoint. Usable ShopIt products become the primary corpus; otherwise `products.json` is loaded. Both paths use the same query reformulation, category/brand matching, TF-IDF and cosine ranking. The HTML form submits with GET, so the frontend requires no JavaScript.
 
 ---
 
@@ -95,56 +72,26 @@ Cosine Similarity(Q, D) = (Q · D) / (||Q|| × ||D||)
 
 | Layer          | Technology                       |
 | -------------- | -------------------------------- |
-| Extension      | Chrome Manifest V3               |
-| Frontend       | React 19, Vite 8                 |
-| Styling        | Vanilla CSS (glassmorphism, dark) |
-| IR Engine      | Pure JavaScript (TF-IDF, Cosine) |
-| Live Data      | SerpAPI, Amazon PA-API, Flipkart |
-| Fallback       | JSON (86 products)               |
+| Layer          | Technology                         |
+| -------------- | ---------------------------------- |
+| Backend        | Python, Flask                      |
+| Frontend       | HTML forms, Jinja templates, CSS   |
+| IR Engine      | Query Reformulation, TF-IDF, Cosine |
+| Live Data      | ShopIt unified search API          |
+| Fallback       | Local JSON product catalog         |
 
 ---
 
 ## Project Structure
 
 ```
-buy-box/
-├── src/
-│   ├── ir/                        # Information Retrieval engine
-│   │   ├── stopwords.js           #   Stop words set
-│   │   ├── preprocessing.js       #   Porter Stemmer + tokenizer
-│   │   ├── tfidf.js               #   TF-IDF Vectorizer
-│   │   ├── similarity.js          #   Cosine similarity
-│   │   ├── productIdentity.js     #   Brand/category extraction
-│   │   └── retrieval.js           #   Pipeline orchestrator
-│   ├── services/
-│   │   ├── liveSearch.js          #   All platform APIs + aggregator
-│   │   ├── normalizeProduct.js    #   Schema normalizer (all sources)
-│   │   ├── ranking.js             #   Sort + badge assignment
-│   │   └── fallbackData.js        #   Offline dataset loader
-│   ├── components/
-│   │   ├── Header.jsx
-│   │   ├── DetectedItem.jsx
-│   │   ├── SearchBar.jsx
-│   │   ├── ResultsTable.jsx
-│   │   ├── SourceIndicator.jsx    #   Live data source badges
-│   │   └── PipelineExplainer.jsx
-│   ├── content/
-│   │   ├── content.js             #   Cart detection content script
-│   │   └── cartDetection.js       #   Platform-specific selectors
-│   ├── background/
-│   │   └── background.js          #   Service worker
-│   ├── data/
-│   │   └── products.json          #   86-product fallback dataset
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
-├── public/
-│   ├── manifest.json
-│   ├── favicon.svg
-│   └── icons.svg
-├── sidepanel.html
-├── package.json
-├── vite.config.js
+Buy Box/
+├── app.py
+├── query_reformulation.py
+├── tfidf_engine.py
+├── products.json
+├── templates/index.html
+├── static/style.css
 └── README.md
 ```
 
@@ -152,45 +99,27 @@ buy-box/
 
 ## Setup Instructions
 
-### Prerequisites
-
-- Node.js 16+
-- npm
-- Google Chrome
-
-### Build & Install
+### Run BuyBox
 
 ```bash
-npm install
-npm run build
+python -m pip install Flask
+python app.py
 ```
 
-### Load in Chrome
+Open `http://127.0.0.1:5000` in a browser.
 
-1. Open `chrome://extensions`
-2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select the `dist/` folder
+### Run ShopIt (optional, primary source)
 
-### Environment Variables (optional)
+Run the ShopIt API in a separate terminal, using its setup instructions at [bipash25/ShopIt](https://github.com/bipash25/ShopIt). Its default address is `http://127.0.0.1:8000`; BuyBox requests `/api/search?q=...&source=all`.
 
-Create a `.env` file to enable real-time data sources:
+To use a different API address, set `SHOPIT_API_URL` before starting BuyBox:
 
-```env
-# Google Shopping via SerpAPI
-VITE_SERPAPI_KEY=your_serpapi_key
-
-# Amazon India PA-API 5.0
-VITE_AMAZON_ACCESS_KEY=your_access_key
-VITE_AMAZON_SECRET_KEY=your_secret_key
-VITE_AMAZON_PARTNER_TAG=your_tag-21
-
-# Flipkart Affiliate API
-VITE_FLIPKART_AFFILIATE_ID=your_id
-VITE_FLIPKART_TOKEN=your_token
+```powershell
+$env:SHOPIT_API_URL = "http://127.0.0.1:8000"
+python app.py
 ```
 
-All API keys are optional. Without any keys, the extension uses the offline dataset (86 products across 7 categories).
+ShopIt needs no API key. If it is stopped, times out, fails, or returns no usable products, BuyBox uses `products.json` and labels those results as fallback data.
 
 ---
 
@@ -198,22 +127,17 @@ All API keys are optional. Without any keys, the extension uses the offline data
 
 | Source | Coverage | Requires |
 |--------|----------|----------|
-| SerpAPI (Google Shopping) | All platforms indexed by Google | API key |
-| Amazon PA-API 5.0 | Amazon India | Associate account + API keys |
-| Flipkart Affiliate API | Flipkart | Affiliate account + token |
-| Offline Dataset | 86 products, 7 categories | Nothing (always available) |
+| ShopIt API | Live Amazon India and Flipkart listings | ShopIt running locally or at configured URL |
+| Fallback dataset | Local product offers, including cups and kurtis | Nothing |
 
 ---
 
 ## User Flow
 
-1. **Browse** any supported shopping site (Amazon, Flipkart, Myntra, etc.)
-2. **Add to Cart** — the extension automatically detects the cart event
-3. **BUY BOX opens** near the top-right with the detected product title
-4. **Compare Now** — triggers the IR pipeline with real-time data
-5. **View** ranked results with relevance scores, prices, and ratings
-6. **Sort** by Best Match, Lowest Price, Highest Rating, Most Reviews, or Most Purchased
-7. **Open** a direct buying link for the preferred offer
+1. Enter a category such as `cup`, `kurti`, or `shoes`, or a specific brand and model.
+2. BuyBox searches ShopIt, falling back to the local catalog when needed.
+3. Compare the ranked products by price, rating, and reviews; choose a sort order.
+4. Inspect the server terminal for query reformulation, TF-IDF vectors, cosine scores, and retrieved-result diagnostics.
 
 ---
 
@@ -221,11 +145,10 @@ All API keys are optional. Without any keys, the extension uses the offline data
 
 | Query                     | Expected Results               |
 | ------------------------- | ------------------------------ |
-| Nike Running Shoes        | Nike shoes across platforms    |
-| Samsung Galaxy Phone      | Samsung phones from platforms  |
-| Sony Headphones           | Sony headphones from platforms |
-| Maybelline Foundation     | Maybelline products from platforms |
-| Maggi Noodles             | Maggi packs from platforms     |
+| cup | Cup and mug listings |
+| kurti | Kurti listings |
+| shoes | Shoe listings |
+| Nike Revolution 6 | Nike model listings |
 
 ---
 
