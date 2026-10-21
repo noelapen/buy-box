@@ -16,7 +16,7 @@
         <div class="logo">
             <span class="logo-icon">📦</span>
             <h1>BuyBox</h1>
-            <span class="tagline">Cross-Platform Price Comparator</span>
+            <span class="tagline">Compare Smart - Shop Better</span>
         </div>
     </div>
 </header>
@@ -33,7 +33,7 @@
                        value="{{ query }}"
                        placeholder="e.g. Nike Revolution 6 Running Shoes"
                        autocomplete="off">
-                <button type="submit" class="search-btn">Compare</button>
+                <button type="submit" class="search-btn">Search</button>
             </div>
 
             {% if comparison and comparison.results %}
@@ -54,91 +54,11 @@
 <!-- Results Section -->
 <main class="results-section">
     <div class="container">
-
-        {% if comparison and comparison.message %}
-        <div class="no-results">
-            <p>{{ comparison.message }}</p>
-        </div>
-        {% endif %}
-
-        {% if comparison and comparison.results %}
-        <div class="results-header">
-            <h2>Comparing across {{ comparison.platform_count }} platform{{ 's' if comparison.platform_count != 1 }}</h2>
-            <p class="source-note">{{ comparison.source_label }}</p>
-            {% if comparison.missing_platforms %}
-            <p class="missing-note">Not found on: {{ comparison.missing_platforms|join(', ') }}</p>
+        <div id="comparison-results">
+            {% if comparison %}
+                {% include "_comparison_results.html" %}
             {% endif %}
         </div>
-
-        <div class="results-grid">
-            {% for product in comparison.results %}
-            <div class="product-card {% if 'BEST CHOICE' in product.badges %}best-choice{% endif %}">
-
-                <!-- Badges -->
-                {% if product.badges %}
-                <div class="badges">
-                    {% for badge in product.badges %}
-                    <span class="badge
-                        {% if badge == 'BEST CHOICE' %}badge-best{% endif %}
-                        {% if badge == 'LOWEST PRICE' %}badge-price{% endif %}
-                        {% if badge == 'HIGHEST RATED' %}badge-rated{% endif %}
-                        {% if badge == 'BEST MATCH' %}badge-match{% endif %}
-                    ">{{ badge }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-
-                <!-- Product Image -->
-                <div class="product-img">
-                    {% if product.image and product.image != 'N/A' %}
-                    <img src="{{ product.image }}" alt="{{ product.product_name }}" loading="lazy">
-                    {% else %}
-                    <div class="img-placeholder">No Image</div>
-                    {% endif %}
-                </div>
-
-                <!-- Platform Tag -->
-                <div class="platform-tag">{{ product.platform }}</div>
-
-                <!-- Product Info -->
-                <div class="product-info">
-                    <h3 class="product-title">{{ product.product_name }}</h3>
-                    <p class="product-brand">{{ product.brand }}</p>
-
-                    <div class="product-stats">
-                        <!-- Price -->
-                        <div class="stat">
-                            <span class="stat-label">Price</span>
-                            <span class="stat-value price-value">
-                                {% if product.price is not none %}₹{{ "%.0f"|format(product.price) }}{% else %}N/A{% endif %}
-                            </span>
-                        </div>
-                        <!-- Rating -->
-                        <div class="stat">
-                            <span class="stat-label">Rating</span>
-                            <span class="stat-value">
-                                {% if product.rating is not none %}⭐ {{ "%.1f"|format(product.rating) }}{% else %}N/A{% endif %}
-                            </span>
-                        </div>
-                        <!-- Reviews -->
-                        <div class="stat">
-                            <span class="stat-label">Reviews</span>
-                            <span class="stat-value">
-                                {% if product.review_count is not none %}{{ "%.0f"|format(product.review_count) }}{% else %}N/A{% endif %}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action -->
-                {% set url = product_search_url(product) %}
-                {% if url %}
-                <a href="{{ url }}" target="_blank" rel="noopener" class="view-btn">View on {{ product.platform }}</a>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
 
         {% if not comparison %}
         <div class="welcome">

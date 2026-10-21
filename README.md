@@ -1,154 +1,220 @@
 # BUY BOX - Product Price Comparator
 
-BuyBox is a small Flask application with an HTML/CSS frontend. It searches ShopIt's Amazon India and Flipkart API first, then automatically uses the included product catalog when ShopIt is unavailable or has no usable results. Query Reformulation and TF-IDF/Cosine Similarity run in Python; their demonstration trace is printed in the server terminal, not shown in the page.
+BuyBox is a Flask-based product comparison app that searches for relevant products, ranks them using a text IR pipeline, and compares price, rating, review count, and platform details. The current workflow is:
+
+1. User enters a product or category query.
+2. The app reformulates the query and extracts brand/category intent.
+3. The app searches ShopIt first.
+4. If ShopIt is unavailable or returns no usable products, the app searches the bundled local dataset.
+5. TF-IDF and cosine similarity rank candidates, which are sorted by the selected option.
+
+This README reflects the current project workflow and the exact steps to run it locally.
 
 ---
 
-## Problem Statement
+## Current Project Workflow
 
-Online shoppers face the challenge of comparing product offers across e-commerce platforms. Manually checking each platform is time-consuming and inefficient.
-
-**BUY BOX** retrieves relevant products for both broad category searches and specific brand/model searches, then compares prices, ratings, and review counts.
-
----
-
-## Objectives
-
-1. Implement a text-based Information Retrieval system using TF-IDF and Cosine Similarity
-2. Build a product comparison engine that evaluates products on multiple attributes
-3. Demonstrate the complete IR pipeline: Query Processing → Vectorization → Similarity → Retrieval → Ranking
-4. Retrieve live product listings through the ShopIt API
-5. Fall back automatically to a local dataset when live results are unavailable
-
----
-
-## Algorithm — TF-IDF + Cosine Similarity
-
-### Query Processing Pipeline
+The backend logic lives in `app.py` and follows this flow:
 
 ```
-Input: "Nike Black Running Shoes for Men"
-  ↓ Lowercase
-"nike black running shoes for men"
-  ↓ Tokenize
-["nike", "black", "running", "shoes", "for", "men"]
-  ↓ Remove Stop Words
-["nike", "black", "running", "shoes", "men"]
-  ↓ Stem (Porter Stemmer)
-["nike", "black", "run", "shoe", "men"]
-  ↓ Join
-Output: "nike black run shoe men"
+User query
+  ↓
+Query reformulation (lowercase, tokenization, stop-word removal, stemming)
+  ↓
+Brand/category extraction
+  ↓
+Live ShopIt search
+↓
+Local products.json fallback if needed
+  ↓
+Candidate filtering and TF-IDF scoring
+  ↓
+Cosine similarity ranking
+  ↓
+Final sorting + result display
 ```
 
-### TF-IDF Vectorization
+### What happens at runtime
 
-```
-TF(t, d) = (count of t in d) / (total terms in d)
-IDF(t) = log((N + 1) / (df + 1)) + 1
-TF-IDF(t, d) = TF(t, d) × IDF(t)
-```
-
-### Cosine Similarity
-
-```
-Cosine Similarity(Q, D) = (Q · D) / (||Q|| × ||D||)
-```
-
-### Ranking
-
-- **BEST MATCH** — Highest cosine similarity
-- **LOWEST PRICE** — Minimum price
-- **HIGHEST RATED** — Best rating (review count as tiebreaker)
-
----
-
-## Architecture
-
-The Flask route sends the raw query to ShopIt's unified `/api/search` endpoint. Usable ShopIt products become the primary corpus; otherwise `products.json` is loaded. Both paths use the same query reformulation, category/brand matching, TF-IDF and cosine ranking. The HTML form submits with GET, so the frontend requires no JavaScript.
-
----
-
-## Technology Stack
-
-| Layer          | Technology                       |
-| -------------- | -------------------------------- |
-| Layer          | Technology                         |
-| -------------- | ---------------------------------- |
-| Backend        | Python, Flask                      |
-| Frontend       | HTML forms, Jinja templates, CSS   |
-| IR Engine      | Query Reformulation, TF-IDF, Cosine |
-| Live Data      | ShopIt unified search API          |
-| Fallback       | Local JSON product catalog         |
+- `query_reformulation.py` cleans and normalizes the user query.
+- `tfidf_engine.py` computes TF-IDF vectors and cosine similarity scores.
+- `app.py` loads environment config from `.env` if available.
+- Every search request calls ShopIt at `SHOPIT_API_URL/api/search?q=...&source=all` first.
+- If ShopIt returns products, BuyBox ranks and displays those results. If it is unavailable or returns no usable products, BuyBox ranks and displays products from `products.json`.
+- The server prints the IR trace in the terminal, including reformulated queries and cosine scores.
 
 ---
 
 ## Project Structure
 
-```
+```text
 Buy Box/
 ├── app.py
 ├── query_reformulation.py
 ├── tfidf_engine.py
 ├── products.json
-├── templates/index.html
-├── static/style.css
-└── README.md
+├── .env
+├── static/
+├── templates/
+├── ShopIt/               # optional local ShopIt backend
+├── .gitignore
+├── README.md
+└── __pycache__/
 ```
 
 ---
 
-## Setup Instructions
+## Prerequisites
 
-### Run BuyBox
+- Python 3.9+
+- Flask
+- Optional: local ShopIt API running on `http://127.0.0.1:8000`
+
+---
+
+## How to Run the Project
+
+### 1) Open a terminal in the project root
 
 ```bash
-python -m pip install Flask
-python app.py
+cd "C:\Users\Dell\Downloads\projects\info ret\Buy Box"
 ```
 
-Open `http://127.0.0.1:5000` in a browser.
+### 2) Create and activate a virtual environment
 
-### Run ShopIt (optional, primary source)
+Windows PowerShell:
 
-Run the ShopIt API in a separate terminal, using its setup instructions at [bipash25/ShopIt](https://github.com/bipash25/ShopIt). Its default address is `http://127.0.0.1:8000`; BuyBox requests `/api/search?q=...&source=all`.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
 
-To use a different API address, set `SHOPIT_API_URL` before starting BuyBox:
+Linux/macOS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3) Install the dependencies
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install flask
+```
+
+### 4) Configure the API URL (optional but recommended)
+
+The project automatically loads settings from the `.env` file in the root directory. The current default is:
+
+```env
+SHOPIT_API_URL=http://127.0.0.1:8000
+SHOPIT_API_KEY=
+```
+
+If you want to override it in PowerShell before starting the app:
 
 ```powershell
 $env:SHOPIT_API_URL = "http://127.0.0.1:8000"
+```
+
+### 5) Start the ShopIt backend (optional but preferred)
+
+If you want live product results, run the ShopIt API in a separate terminal. This project expects the backend at:
+
+```text
+http://127.0.0.1:8000/api/search?q=...&source=all
+```
+
+If the local ShopIt project is in the sibling `ShopIt/` folder, start it from there according to that repository's instructions. If ShopIt is unavailable, BuyBox will automatically use the fallback dataset in `products.json`.
+
+### 6) Start the BuyBox app
+
+```bash
 python app.py
 ```
 
-ShopIt needs no API key. If it is stopped, times out, fails, or returns no usable products, BuyBox uses `products.json` and labels those results as fallback data.
+Then open:
+
+```text
+http://127.0.0.1:5000
+```
 
 ---
 
-## Data Sources
+## Typical User Flow
 
-| Source | Coverage | Requires |
-|--------|----------|----------|
-| ShopIt API | Live Amazon India and Flipkart listings | ShopIt running locally or at configured URL |
-| Fallback dataset | Local product offers, including cups and kurtis | Nothing |
-
----
-
-## User Flow
-
-1. Enter a category such as `cup`, `kurti`, or `shoes`, or a specific brand and model.
-2. BuyBox searches ShopIt, falling back to the local catalog when needed.
-3. Compare the ranked products by price, rating, and reviews; choose a sort order.
-4. Inspect the server terminal for query reformulation, TF-IDF vectors, cosine scores, and retrieved-result diagnostics.
+1. Enter a query such as `cup`, `kurti`, `shoes`, or `Nike Revolution 6`.
+2. The app reformulates the query and extracts product identity.
+3. The app searches ShopIt first and displays live results when available.
+4. If ShopIt cannot provide usable results, the app displays matches from the local catalog.
+5. The results are ranked by best match and sorted by the chosen option.
+6. The terminal prints the IR trace (`raw query`, `processed query`, `TF-IDF vectors`, `cosine scores`, results).
 
 ---
 
-## Example Queries
+## Supported Sorting Options
 
-| Query                     | Expected Results               |
-| ------------------------- | ------------------------------ |
-| cup | Cup and mug listings |
-| kurti | Kurti listings |
-| shoes | Shoe listings |
-| Nike Revolution 6 | Nike model listings |
+The app supports these sort modes:
+
+- Best Match
+- Lowest Price
+- Highest Rating
+- Most Reviews
+- Most Purchased
+
+---
+
+## Retrieval Metrics
+
+Each search displays Precision, Recall, F1, P@K, MAP, and average search response time. Relevance is estimated using the existing pseudo-relevance method: the top three candidates in the initial ranking are treated as relevant. These are estimates, not ground-truth evaluation results.
+
+Precision, Recall, F1, and P@K are calculated from the best-match retrieval ranking before optional price/rating sorting. MAP is the mean of average precision across unique normalized queries seen since the app started. Average search response time is measured with a monotonic timer and calculated as total search-pipeline time divided by completed search requests; it excludes HTML rendering and resets when the app process restarts.
+
+## Example Search Queries
+
+```text
+cup
+kurti
+shoes
+Nike Revolution 6
+```
+
+Expected behavior:
+
+- Category searches return relevant product listings.
+- Brand/model searches narrow to similar product names and matching brand identities.
+- If the live source fails, results still appear from the local dataset.
+
+---
+
+## Troubleshooting
+
+### App does not start
+
+Check that Flask is installed:
+
+```bash
+python -m pip install flask
+```
+
+### Port 5000 is already in use
+
+Stop the other process or run the app on a different port manually:
+
+```bash
+python -c "from app import app; app.run(port=5001, debug=True)"
+```
+
+### ShopIt is not returning results
+
+This is expected in development if the live backend is down. BuyBox will automatically fallback to `products.json` and continue working.
+
+### No result is displayed
+
+- Confirm the app started successfully.
+- Check the terminal logs for query reformulation output.
+- Make sure the project is opened in the root folder and not from a child folder.
 
 ---
 

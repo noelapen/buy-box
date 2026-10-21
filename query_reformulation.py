@@ -1,17 +1,30 @@
 """
-IR CONCEPT 1 — QUERY REFORMULATION
+IR CONCEPT 1 -- QUERY REFORMULATION
 Transforms raw cart product text into a clean, normalized search query.
 
 Pipeline:
-  Raw Input → Lowercase → Tokenize → Remove Punctuation → Remove Stop Words → Stem → Clean Query
+  Raw Input -> Lowercase -> Tokenize -> Remove Punctuation
+  -> Remove Stop Words -> Stem -> Product-Type Alias Expansion
+  -> Clean Query -> Relevance Feedback Expansion (IR Concept 3)
 
-Example:
+Stage 1 -- Preprocessing (this module):
   "Nike Black Running Shoes for Men"
-  → lowercase:   "nike black running shoes for men"
-  → tokenize:    ["nike", "black", "running", "shoes", "for", "men"]
-  → stop words:  ["nike", "black", "running", "shoes", "men"]
-  → stemming:    ["nike", "black", "run", "shoe", "men"]
-  → output:      "nike black run shoe men"
+  -> lowercase:   "nike black running shoes for men"
+  -> tokenize:    ["nike", "black", "running", "shoes", "for", "men"]
+  -> stop words:  ["nike", "black", "running", "shoes", "men"]
+  -> stemming:    ["nike", "black", "run", "shoe", "men"]
+  -> aliases:     ["nike", "black", "run", "shoe", "men", "sneaker", ...]
+  -> output:      "nike black run shoe men sneaker ..."
+
+Stage 2 -- Relevance Feedback Expansion (relevance_feedback.py):
+  After initial TF-IDF ranking, the preprocessed query is expanded
+  using three algorithms with pseudo-relevance feedback:
+    - Rocchio:      Q' = a*Q + b*centroid(Dr) - g*centroid(Dn)
+    - Ide Regular:  Q' = a*Q + b*Sum(Dj) - g*Sum(Dk)
+    - Ide Dec-Hi:   Q' = a*Q + b*Sum(Dj) - g*D_max_nrel
+  Term selection is applied via fixed cutoff (tau=0.1),
+  top-K (k=5), and relative cutoff (rho=0.3).
+  The Rocchio-expanded query is used for final TF-IDF re-ranking.
 
 Also extracts product identity (brand, category) from the query
 and filters candidates to same-brand matches.
@@ -196,15 +209,21 @@ def preprocess(text):
       4. Stemming — reduce words to root forms via Porter Stemmer
     Returns a list of stemmed tokens.
     """
-    # Step 1: Lowercase
-    text = str(text or "").lower()
-    # Step 2: Tokenize (only alphabetic sequences)
-    tokens = re.findall(r"[a-z]+", text)
-    # Step 3: Remove stop words
-    filtered = [t for t in tokens if t not in STOP_WORDS]
-    # Step 4: Porter stemming
-    stemmed = [porter_stem(t) for t in filtered]
-    return stemmed
+    return _preprocess_with_trace(text)["stemmed_tokens"]
+
+
+def _preprocess_with_trace(text):
+    """Run preprocessing and retain each stage for the terminal IR trace."""
+    lowercase = str(text or "").lower()
+    tokens = re.findall(r"[a-z]+", lowercase)
+    filtered_tokens = [token for token in tokens if token not in STOP_WORDS]
+    return {
+        "lowercase": lowercase,
+        "tokens": tokens,
+        "removed_stop_words": [token for token in tokens if token in STOP_WORDS],
+        "filtered_tokens": filtered_tokens,
+        "stemmed_tokens": [porter_stem(token) for token in filtered_tokens],
+    }
 
 
 def reformulate_query(raw_query):
@@ -212,14 +231,78 @@ def reformulate_query(raw_query):
     IR Concept 1: Reformulate a raw user query into a clean search query.
     Applies preprocessing and adds close category synonyms for broader recall.
     """
-    tokens = preprocess(raw_query)
+    tokens, _ = reformulate_query_with_trace(raw_query)
+    return tokens
+
+
+def reformulate_query_with_trace(raw_query):
+    """Reformulate a query and return the preprocessing stages for logging."""
+    trace = _preprocess_with_trace(raw_query)
+    tokens = list(trace["stemmed_tokens"])
+    tokens, matched_alias_group, added_aliases = _add_product_type_aliases(tokens)
+    trace["matched_alias_group"] = matched_alias_group
+    trace["added_aliases"] = added_aliases
+    trace["reformulated_tokens"] = tokens
+    return tokens, trace
+
+
+def correct_query_tokens(tokens, vocabulary):
+    """Correct tokens with a unique one-edit match, then add product aliases."""
+    vocabulary = set(vocabulary)
+    corrected_tokens = []
+    corrections = {}
+    for token in tokens:
+        if token in vocabulary or len(token) < 4:
+            corrected_tokens.append(token)
+            continue
+        matches = [
+            candidate for candidate in vocabulary
+            if abs(len(candidate) - len(token)) <= 1 and _one_edit_apart(token, candidate)
+        ]
+        if len(matches) == 1:
+            corrected_tokens.append(matches[0])
+            corrections[token] = matches[0]
+        else:
+            corrected_tokens.append(token)
+
+    reformulated_tokens, _, _ = _add_product_type_aliases(corrected_tokens)
+    return reformulated_tokens, corrections
+
+
+def _one_edit_apart(first, second):
+    """Return whether two strings differ by exactly one insertion, deletion, or replacement."""
+    if abs(len(first) - len(second)) > 1:
+        return False
+    if len(first) == len(second):
+        return sum(left != right for left, right in zip(first, second)) == 1
+
+    shorter, longer = sorted((first, second), key=len)
+    short_index = long_index = 0
+    skipped = False
+    while short_index < len(shorter) and long_index < len(longer):
+        if shorter[short_index] == longer[long_index]:
+            short_index += 1
+            long_index += 1
+        elif skipped:
+            return False
+        else:
+            skipped = True
+            long_index += 1
+    return True
+
+
+def _add_product_type_aliases(tokens):
     token_set = set(tokens)
-    for aliases in PRODUCT_TYPE_ALIASES.values():
+    matched_alias_group = ""
+    added_aliases = []
+    for group, aliases in PRODUCT_TYPE_ALIASES.items():
         alias_tokens = set(preprocess(" ".join(aliases)))
         if token_set.intersection(alias_tokens):
-            tokens.extend(sorted(alias_tokens - token_set))
+            matched_alias_group = group
+            added_aliases = sorted(alias_tokens - token_set)
+            tokens.extend(added_aliases)
             break
-    return tokens
+    return tokens, matched_alias_group, added_aliases
 
 
 # --- Brand / Category Aliases ---

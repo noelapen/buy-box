@@ -1,0 +1,351 @@
+{% if comparison.message %}
+<div class="no-results">
+    <p>{{ comparison.message }}</p>
+</div>
+{% endif %}
+
+{% if comparison.results %}
+<div class="results-header">
+    <h2>Comparing across {{ comparison.platform_count }} platform{{ 's' if comparison.platform_count != 1 }}</h2>
+    <p class="source-note">{{ comparison.source_label }}</p>
+    <p id="live-status" role="status" aria-live="polite">{{ status_message }}</p>
+    {% if comparison.missing_platforms %}
+    <p class="missing-note">Not found on: {{ comparison.missing_platforms|join(', ') }}</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{# ── View Backend Analysis Button & Panel ────────────────────────────── #}
+{% if comparison.diagnostics %}
+{% set d = comparison.diagnostics %}
+<div class="analysis-toggle-wrap">
+    <button type="button" class="analysis-toggle-btn" id="analysis-toggle-btn" onclick="toggleAnalysis()">
+        <svg class="analysis-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+            <rect x="9" y="3" width="6" height="4" rx="1"/>
+            <path d="M9 14l2 2 4-4"/>
+        </svg>
+        <span id="analysis-toggle-text">View Backend Analysis</span>
+        <svg class="analysis-chevron" id="analysis-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+        </svg>
+    </button>
+</div>
+
+<div class="analysis-panel" id="analysis-panel" style="display:none;">
+
+    {# ── Performance Metrics (always visible at top of panel) ────────── #}
+    {% if comparison.metrics %}
+    <section class="metrics-panel" aria-label="Information retrieval metrics">
+        <h3>Performance Metrics</h3>
+        <div class="metrics-grid">
+            <div class="metric">
+                <span class="metric-label">Precision</span>
+                <span class="metric-value">{{ "%.1f%%"|format(comparison.metrics.precision * 100) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Recall</span>
+                <span class="metric-value">{{ "%.1f%%"|format(comparison.metrics.recall * 100) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">F1</span>
+                <span class="metric-value">{{ "%.1f%%"|format(comparison.metrics.f1 * 100) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">P@{{ comparison.metrics.k }}</span>
+                <span class="metric-value">{{ "%.1f%%"|format(comparison.metrics.precision_at_k * 100) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">MAP</span>
+                <span class="metric-value">{{ "%.1f%%"|format(comparison.metrics.map * 100) }}</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Avg. search response</span>
+                <span class="metric-value">{{ "%.2f ms"|format(comparison.metrics.average_response_time * 1000) }}</span>
+            </div>
+        </div>
+        <p class="metrics-note">
+            Relevance uses pseudo-labels (the top three candidates in the initial ranking). MAP averages over
+            {{ comparison.metrics.measured_queries }} unique quer{{ 'y' if comparison.metrics.measured_queries == 1 else 'ies' }};
+            response time averages {{ comparison.metrics.measured_requests }} completed search request{{ '' if comparison.metrics.measured_requests == 1 else 's' }}.
+        </p>
+    </section>
+    {% endif %}
+
+    {# ── A. Relevance Feedback ──────────────────────────────────────── #}
+    {% set rf = d.relevance_feedback %}
+    <div class="analysis-section">
+        <button type="button" class="analysis-section-header" onclick="toggleSection(this)">
+            <span class="section-letter">A</span>
+            <span class="section-title-text">Relevance Feedback</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="analysis-section-body" style="display:none;">
+            {% if rf.available %}
+            <p class="diag-note">
+                <strong>Method:</strong> {{ rf.feedback_method }}
+                &nbsp;·&nbsp; α={{ rf.parameters.alpha }}, β={{ rf.parameters.beta }}, γ={{ rf.parameters.gamma }}
+                &nbsp;·&nbsp; τ={{ rf.parameters.tau }}, K={{ rf.parameters.k }}, ρ={{ rf.parameters.rho }}
+            </p>
+
+            {% if rf.reformulated_queries %}
+            <h5 class="diag-sub">Reformulated Queries</h5>
+            <ul class="diag-list">
+                {% for algorithm, reformulated_query in rf.reformulated_queries.items() %}
+                <li><strong>{{ algorithm }}:</strong> <code>{{ reformulated_query }}</code></li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {# Relevant / Non-relevant documents #}
+            <div class="diag-columns">
+                <div>
+                    <h5 class="diag-sub">Relevant Documents (Dr = {{ rf.relevant_docs|length }})</h5>
+                    <ul class="diag-list">
+                    {% for doc in rf.relevant_docs %}
+                        <li><span class="diag-rank">[{{ doc.rank }}]</span> {{ doc.name }} <span class="diag-dim">({{ doc.platform }})</span> — cosine {{ doc.cosine }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="diag-sub">Non-Relevant Documents (Dn = {{ rf.non_relevant_docs|length }})</h5>
+                    <ul class="diag-list">
+                    {% for doc in rf.non_relevant_docs %}
+                        <li><span class="diag-rank">[{{ doc.rank }}]</span> {{ doc.name }} <span class="diag-dim">({{ doc.platform }})</span> — cosine {{ doc.cosine }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            {# Keyword weight table #}
+            {% if rf.keyword_table %}
+            <h5 class="diag-sub" style="margin-top:16px;">Keyword Weights</h5>
+            <div class="diag-table-scroll">
+                <table class="diag-data-table">
+                    <thead>
+                        <tr><th>Keyword</th><th>Query</th><th>Dr</th><th>Dn</th><th>Rocchio</th><th>Ide Reg</th><th>Ide Dec-Hi</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for row in rf.keyword_table %}
+                        <tr>
+                            <td><code>{{ row.term }}</code></td>
+                            <td>{{ row.query }}</td><td>{{ row.dr }}</td><td>{{ row.dn }}</td>
+                            <td>{{ row.rocchio }}</td><td>{{ row.ide_reg }}</td><td>{{ row.ide_dh }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+            {# Algorithm thresholding results #}
+            {% for algo_name, algo in rf.algorithms.items() %}
+            <div class="algo-block">
+                <h5 class="diag-sub algo-title">{{ algo_name }}</h5>
+                <div class="threshold-grid">
+                    <div class="threshold-card">
+                        <span class="threshold-label">Fixed Cutoff (τ ≥ {{ rf.parameters.tau }})</span>
+                        {% if algo.selection.fixed_cutoff %}
+                        <ul class="threshold-list">{% for t, w in algo.selection.fixed_cutoff.items() %}<li><code>{{ t }}</code> <span class="diag-dim">{{ w }}</span></li>{% endfor %}</ul>
+                        {% else %}<span class="diag-na">no terms meet threshold</span>{% endif %}
+                    </div>
+                    <div class="threshold-card">
+                        <span class="threshold-label">Top-K (k = {{ rf.parameters.k }})</span>
+                        {% if algo.selection.top_k %}
+                        <ul class="threshold-list">{% for t, w in algo.selection.top_k.items() %}<li><code>{{ t }}</code> <span class="diag-dim">{{ w }}</span></li>{% endfor %}</ul>
+                        {% else %}<span class="diag-na">no terms available</span>{% endif %}
+                    </div>
+                    <div class="threshold-card">
+                        <span class="threshold-label">Relative Cutoff (ρ = {{ rf.parameters.rho }})</span>
+                        {% if algo.selection.relative_cutoff %}
+                        <ul class="threshold-list">{% for t, w in algo.selection.relative_cutoff.items() %}<li><code>{{ t }}</code> <span class="diag-dim">{{ w }}</span></li>{% endfor %}</ul>
+                        {% else %}<span class="diag-na">no terms meet threshold</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% else %}
+            <p class="diag-na">Relevance feedback was not available for this query.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ── B. TF-IDF & Cosine Similarity ──────────────────────────────── #}
+    {% set tf = d.tfidf %}
+    <div class="analysis-section">
+        <button type="button" class="analysis-section-header" onclick="toggleSection(this)">
+            <span class="section-letter">B</span>
+            <span class="section-title-text">TF-IDF &amp; Cosine Similarity</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="analysis-section-body" style="display:none;">
+            {% if tf.used_expansion %}
+            <p class="diag-note"><strong>Rocchio-expanded query:</strong> <code>{{ tf.expanded_query }}</code></p>
+            {% endif %}
+
+            <h5 class="diag-sub">Query TF-IDF Vector</h5>
+            <div class="vector-chips">
+                {% for term, weight in tf.query_vector.items() %}
+                <span class="vector-chip"><code>{{ term }}</code> <span class="diag-dim">{{ weight }}</span></span>
+                {% endfor %}
+            </div>
+
+            <h5 class="diag-sub" style="margin-top:16px;">Product Cosine Similarity Scores (first 20 of {{ tf.product_score_count }})</h5>
+            <div class="diag-table-scroll">
+                <table class="diag-data-table">
+                    <thead><tr><th>#</th><th>Product</th><th>Platform</th><th>Cosine</th></tr></thead>
+                    <tbody>
+                    {% for p in tf.product_scores %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ p.name }}</td>
+                            <td>{{ p.platform }}</td>
+                            <td><strong>{{ p.cosine }}</strong></td>
+                        </tr>
+                        {% if p.doc_vector %}
+                        <tr class="doc-vector-row">
+                            <td></td>
+                            <td colspan="3">
+                                <span class="diag-dim">Doc vector (top terms):</span>
+                                {% for t, w in p.doc_vector.items() %}<code>{{ t }}</code>=<span class="diag-dim">{{ w }}</span>{{ ', ' if not loop.last }}{% endfor %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── C. Final Results ───────────────────────────────────────────── #}
+    <div class="analysis-section">
+        <button type="button" class="analysis-section-header" onclick="toggleSection(this)">
+            <span class="section-letter">C</span>
+            <span class="section-title-text">Final Results</span>
+            <svg class="section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="analysis-section-body" style="display:none;">
+            <p class="diag-note">
+                Products ranked by TF-IDF cosine similarity{% if tf.used_expansion %} after Rocchio query expansion{% endif %}, then filtered to the top {{ d.final_results|length }} results.
+                Badges (Best Match, Lowest Price, Highest Rated) are assigned based on relevance score, price, and rating respectively.
+            </p>
+            <div class="diag-table-scroll">
+                <table class="diag-data-table">
+                    <thead><tr><th>Rank</th><th>Product</th><th>Platform</th><th>Price</th><th>Rating</th><th>Cosine</th><th>Badges</th></tr></thead>
+                    <tbody>
+                    {% for r in d.final_results %}
+                        <tr>
+                            <td>{{ r.rank }}</td>
+                            <td>{{ r.name }}</td>
+                            <td>{{ r.platform }}</td>
+                            <td>{% if r.price is not none %}₹{{ "%.0f"|format(r.price) }}{% else %}N/A{% endif %}</td>
+                            <td>{% if r.rating is not none %}{{ "%.1f"|format(r.rating) }}{% else %}N/A{% endif %}</td>
+                            <td><strong>{{ r.relevance_score }}</strong></td>
+                            <td>{% if r.badges %}{{ r.badges|join(', ') }}{% else %}-{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>{# /analysis-panel #}
+
+<script>
+function toggleAnalysis() {
+    var panel = document.getElementById('analysis-panel');
+    var text = document.getElementById('analysis-toggle-text');
+    var chevron = document.getElementById('analysis-chevron');
+    var btn = document.getElementById('analysis-toggle-btn');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        text.textContent = 'Hide Backend Analysis';
+        chevron.style.transform = 'rotate(180deg)';
+        btn.classList.add('active');
+    } else {
+        panel.style.display = 'none';
+        text.textContent = 'View Backend Analysis';
+        chevron.style.transform = '';
+        btn.classList.remove('active');
+    }
+}
+function toggleSection(header) {
+    var body = header.nextElementSibling;
+    var chevron = header.querySelector('.section-chevron');
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        chevron.style.transform = 'rotate(180deg)';
+        header.classList.add('open');
+    } else {
+        body.style.display = 'none';
+        chevron.style.transform = '';
+        header.classList.remove('open');
+    }
+}
+</script>
+{% endif %}
+
+{% if comparison.results %}
+<div class="results-grid">
+    {% for product in comparison.results %}
+    <div class="product-card {% if 'BEST CHOICE' in product.badges %}best-choice{% endif %}">
+        {% if product.badges %}
+        <div class="badges">
+            {% for badge in product.badges %}
+            <span class="badge
+                {% if badge == 'BEST CHOICE' %}badge-best{% endif %}
+                {% if badge == 'LOWEST PRICE' %}badge-price{% endif %}
+                {% if badge == 'HIGHEST RATED' %}badge-rated{% endif %}
+                {% if badge == 'BEST MATCH' %}badge-match{% endif %}
+            ">{{ badge }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="product-img">
+            {% if product.image and product.image != 'N/A' %}
+            <img src="{{ product.image }}" alt="{{ product.product_name }}" loading="lazy">
+            {% else %}
+            <div class="img-placeholder">No Image</div>
+            {% endif %}
+        </div>
+
+        <div class="platform-tag">{{ product.platform }}</div>
+
+        <div class="product-info">
+            <h3 class="product-title">{{ product.product_name }}</h3>
+            <p class="product-brand">{{ product.brand }}</p>
+
+            <div class="product-stats">
+                <div class="stat">
+                    <span class="stat-label">Price</span>
+                    <span class="stat-value price-value">
+                        {% if product.price is not none %}₹{{ "%.0f"|format(product.price) }}{% else %}N/A{% endif %}
+                    </span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Rating</span>
+                    <span class="stat-value">
+                        {% if product.rating is not none %}⭐ {{ "%.1f"|format(product.rating) }}{% else %}N/A{% endif %}
+                    </span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Reviews</span>
+                    <span class="stat-value">
+                        {% if product.review_count is not none %}{{ "%.0f"|format(product.review_count) }}{% else %}N/A{% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {% set url = product_search_url(product) %}
+        {% if url %}
+        <a href="{{ url }}" target="_blank" rel="noopener" class="view-btn">View on {{ product.platform }}</a>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
