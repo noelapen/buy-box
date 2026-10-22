@@ -198,6 +198,8 @@ def pseudo_relevance_split(scores, top_rel=3, top_nrel=3):
     if not scores:
         return [], []
     sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+    if sorted_scores[0][1] <= 0:
+        return [], []
     rel_indices = [idx for idx, _ in sorted_scores[:top_rel]]
     nrel_indices = [idx for idx, _ in sorted_scores[-top_nrel:]]
     # Make sure there's no overlap (can happen with very few docs)

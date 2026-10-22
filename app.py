@@ -347,6 +347,7 @@ def search_products(query, sort_by="best_match"):
     print("Reformulated query used for cosine:", " ".join(query_tokens))
 
     scores, vectors = compute_tfidf_vectors(query_tokens, documents, include_vectors=True)
+    has_matches = any(score > 0 for score in scores)
     relevant_indices, _ = pseudo_relevance_split(list(enumerate(scores)))
 
     print("\nIR search (initial ranking)")
@@ -371,7 +372,7 @@ def search_products(query, sort_by="best_match"):
 
     # Re-rank with the Rocchio-expanded query (use Top-K selection)
     final_query_tokens = query_tokens  # default: original
-    if expanded_queries and "Rocchio" in expanded_queries:
+    if has_matches and expanded_queries and "Rocchio" in expanded_queries:
         rocchio_tokens = expanded_queries["Rocchio"]["tokens"]
         if rocchio_tokens:
             final_query_tokens = rocchio_tokens
@@ -394,7 +395,7 @@ def search_products(query, sort_by="best_match"):
         results = [
             {**product, "_candidate_index": index, "relevance_score": score, "badges": []}
             for index, (product, score) in enumerate(zip(eligible, expanded_scores))
-        ]
+        ] if has_matches else []
         final_scores = expanded_scores
         final_vectors = expanded_vectors
     else:
@@ -408,7 +409,7 @@ def search_products(query, sort_by="best_match"):
         results = [
             {**product, "_candidate_index": index, "relevance_score": score, "badges": []}
             for index, (product, score) in enumerate(zip(eligible, scores))
-        ]
+        ] if has_matches else []
         final_scores = scores
         final_vectors = vectors
 
@@ -474,7 +475,8 @@ def search_products(query, sort_by="best_match"):
 
     # D. TF-IDF and Cosine Similarity
     tfidf_product_scores = []
-    for i, (product, score) in enumerate(zip(eligible, final_scores)):
+    scored_products = zip(eligible, final_scores) if has_matches else ()
+    for i, (product, score) in enumerate(scored_products):
         entry = {
             "name": product["product_name"],
             "platform": product["platform"],
@@ -515,7 +517,7 @@ def search_products(query, sort_by="best_match"):
     print("Source and final retrieved count:", source_label, len(results))
     return {
         "results": results,
-        "message": "",
+        "message": "" if results else f'No matching products found for "{query}".',
         "platform_count": len(matched_platforms),
         "missing_platforms": sorted(all_platforms - matched_platforms),
         "source_label": source_label,

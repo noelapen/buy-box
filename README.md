@@ -41,6 +41,7 @@ Final sorting + result display
 - `app.py` loads environment config from `.env` if available.
 - Every search request calls ShopIt at `SHOPIT_API_URL/api/search?q=...&source=all` first.
 - If ShopIt returns products, BuyBox ranks and displays those results. If it is unavailable or returns no usable products, BuyBox ranks and displays products from `products.json`.
+- If no candidate has a positive similarity score for the query, BuyBox shows a no-matching-products message instead of unrelated products.
 - The server prints the IR trace in the terminal, including reformulated queries and cosine scores.
 
 ---
